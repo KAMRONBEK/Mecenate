@@ -1,12 +1,10 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   ListRenderItem,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -21,12 +19,11 @@ import { useCreateCommentMutation } from '@/src/features/post-detail/useCreateCo
 import { usePostCommentsInfiniteQuery } from '@/src/features/post-detail/usePostCommentsInfiniteQuery';
 import { usePostDetailQuery } from '@/src/features/post-detail/usePostDetailQuery';
 import { useTogglePostLikeMutation } from '@/src/features/post-detail/useTogglePostLikeMutation';
-import { colors, radius, spacing, typography } from '@/src/theme/tokens';
+import { colors, spacing, typography } from '@/src/theme/tokens';
 
 type Row = { type: 'comment'; comment: Comment } | { type: 'loading' };
 
 export default function PostDetailScreen() {
-  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const postId = typeof id === 'string' ? id : id?.[0] ?? '';
   const insets = useSafeAreaInsets();
@@ -91,28 +88,32 @@ export default function PostDetailScreen() {
     const isPaid = post.tier === 'paid';
     return (
       <View style={styles.headerBlock}>
-        <View style={styles.authorRow}>
-          <Image source={{ uri: post.author.avatarUrl }} style={styles.avatar} contentFit="cover" />
-          <Text style={styles.authorName} numberOfLines={1}>
-            {name}
-          </Text>
+        <View style={styles.postHeadPadded}>
+          <View style={styles.authorRow}>
+            <Image source={{ uri: post.author.avatarUrl }} style={styles.avatar} contentFit="cover" />
+            <Text style={styles.authorName} numberOfLines={1}>
+              {name}
+            </Text>
+          </View>
         </View>
         {post.coverUrl ? (
           <Image source={{ uri: post.coverUrl }} style={styles.cover} contentFit="cover" />
         ) : null}
-        {post.title ? <Text style={styles.title}>{post.title}</Text> : null}
-        {isPaid && !post.body ? (
-          <Text style={styles.bodyMuted}>Платный контент. Текст доступен после подписки.</Text>
-        ) : (
-          <Text style={styles.body}>{post.body || post.preview}</Text>
-        )}
-        <AnimatedLikeButton
-          likesCount={post.likesCount}
-          isLiked={post.isLiked === true}
-          disabled={likePending}
-          onPress={() => toggleLike()}
-        />
-        <Text style={styles.sectionTitle}>Комментарии</Text>
+        <View style={styles.postHeadPadded}>
+          {post.title ? <Text style={styles.title}>{post.title}</Text> : null}
+          {isPaid && !post.body ? (
+            <Text style={styles.bodyMuted}>Платный контент. Текст доступен после подписки.</Text>
+          ) : (
+            <Text style={styles.body}>{post.body || post.preview}</Text>
+          )}
+          <AnimatedLikeButton
+            likesCount={post.likesCount}
+            isLiked={post.isLiked === true}
+            disabled={likePending}
+            onPress={() => toggleLike()}
+          />
+          <Text style={styles.sectionTitle}>Комментарии</Text>
+        </View>
       </View>
     );
   }, [post, likePending, toggleLike]);
@@ -130,24 +131,11 @@ export default function PostDetailScreen() {
     });
   };
 
-  const backBar = (
-    <View style={[styles.backBar, { paddingTop: insets.top }]}>
-      <Pressable
-        onPress={() => router.back()}
-        hitSlop={12}
-        accessibilityRole="button"
-        accessibilityLabel="Назад"
-        style={styles.backButton}
-      >
-        <FontAwesome name="chevron-left" size={22} color={colors.textPrimary} />
-      </Pressable>
-    </View>
-  );
+  const screenPadding = { paddingTop: insets.top };
 
   if (isPending && !post) {
     return (
-      <View style={styles.screenRoot}>
-        {backBar}
+      <View style={[styles.screenRoot, screenPadding]}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.accent} />
         </View>
@@ -157,8 +145,7 @@ export default function PostDetailScreen() {
 
   if (isError || !post) {
     return (
-      <View style={styles.screenRoot}>
-        {backBar}
+      <View style={[styles.screenRoot, screenPadding]}>
         <View style={styles.center}>
           <Text style={styles.errorText}>Не удалось загрузить публикацию</Text>
           <Text style={styles.retry} onPress={() => void refetch()}>
@@ -170,12 +157,11 @@ export default function PostDetailScreen() {
   }
 
   return (
-    <View style={styles.screenRoot}>
-      {backBar}
+    <View style={[styles.screenRoot, screenPadding]}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior="translate-with-padding"
-        keyboardVerticalOffset={insets.top + 44}
+        keyboardVerticalOffset={insets.top}
       >
         <FlatList
           data={listData}
@@ -223,16 +209,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  backBar: {
-    paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.xs,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   flex: { flex: 1, backgroundColor: colors.background },
   center: {
     flex: 1,
@@ -253,9 +229,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   headerBlock: {
-    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     gap: spacing.md,
+  },
+  postHeadPadded: {
+    paddingHorizontal: spacing.lg,
   },
   authorRow: {
     flexDirection: 'row',
@@ -276,7 +254,7 @@ const styles = StyleSheet.create({
   cover: {
     width: '100%',
     aspectRatio: 4 / 3,
-    borderRadius: radius.lg,
+    borderRadius: 0,
     backgroundColor: colors.border,
   },
   title: {
