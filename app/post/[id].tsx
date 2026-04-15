@@ -13,7 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { KeyboardAvoidingView, useKeyboardState } from 'react-native-keyboard-controller';
+import { useKeyboardState } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import HeartFilled from '@/assets/svgs/heart.svg';
@@ -120,18 +120,20 @@ export default function PostDetailScreen() {
   const postId = typeof id === 'string' ? id : id?.[0] ?? '';
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardState((s) => s.isVisible);
+  const keyboardHeight = useKeyboardState((s) => s.height);
   const [draft, setDraft] = useState('');
   const [commentsNewestFirst, setCommentsNewestFirst] = useState(true);
   /** Local toggles — backend OpenAPI has no POST …/comments/…/like; replace with mutation when available. */
   const [commentLikeOverrides, setCommentLikeOverrides] = useState<Record<string, CommentLikeOverride>>({});
   const listRef = useRef<FlatList<Comment>>(null);
+  const commentInputRef = useRef<TextInput>(null);
   const commentsAnchorYRef = useRef<number>(0);
   const currentScrollOffsetRef = useRef(0);
-  const didAutoRevealCommentsRef = useRef(false);
 
-  const composerBottomPadding = keyboardVisible
-    ? spacing.md
-    : Math.max(insets.bottom, spacing.md);
+  const composerBottomPadding = useMemo(() => {
+    if (keyboardVisible) return keyboardHeight + spacing.md;
+    return Math.max(insets.bottom, spacing.md);
+  }, [keyboardVisible, keyboardHeight, insets.bottom]);
 
   const { data: post, isPending, isError, refetch, isRefetching } = usePostDetailQuery(postId);
   const {
@@ -182,15 +184,14 @@ export default function PostDetailScreen() {
     listRef.current?.scrollToEnd({ animated: true });
   }, [commentsNewestFirst, scrollToComments]);
 
-  const handleCommentsSectionLayout = useCallback(
-    (y: number) => {
-      commentsAnchorYRef.current = y;
-      if (didAutoRevealCommentsRef.current) return;
-      didAutoRevealCommentsRef.current = true;
-      requestAnimationFrame(() => scrollToComments());
-    },
-    [scrollToComments]
-  );
+  /** Keeps anchor for post-send scroll only — no scroll on initial page open */
+  const handleCommentsSectionLayout = useCallback((y: number) => {
+    commentsAnchorYRef.current = y;
+  }, []);
+
+  const focusCommentInput = useCallback(() => {
+    commentInputRef.current?.focus();
+  }, []);
 
   const lastCommentTapRef = useRef<{ id: string; time: number } | null>(null);
 
@@ -312,14 +313,15 @@ export default function PostDetailScreen() {
               )}
               <Text style={[styles.pillText, userHasLiked && styles.pillTextLiked]}>{post.likesCount}</Text>
             </Pressable>
-            <View
-              style={styles.pill}
-              accessibilityLabel={`Комментариев: ${post.commentsCount}`}
-              accessibilityRole="text"
+            <Pressable
+              onPress={focusCommentInput}
+              style={({ pressed }) => [styles.pill, pressed && styles.pillPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`Комментарии: ${post.commentsCount}. Написать комментарий`}
             >
               <MessageIcon width={15} height={15} color={colors.iconPill} />
               <Text style={styles.pillText}>{post.commentsCount}</Text>
-            </View>
+            </Pressable>
           </View>
           <View
             style={styles.commentsSectionHead}
@@ -341,7 +343,7 @@ export default function PostDetailScreen() {
         </View>
       </View>
     );
-  }, [post, likePending, toggleLike, commentsNewestFirst, handleCommentsSectionLayout]);
+  }, [post, likePending, toggleLike, commentsNewestFirst, handleCommentsSectionLayout, focusCommentInput]);
 
   const keyExtractor = useCallback((item: Comment) => item.id, []);
 
@@ -389,10 +391,7 @@ export default function PostDetailScreen() {
 
   return (
     <View style={[styles.screenRoot, screenPadding]}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior="translate-with-padding"
-      >
+      <View style={styles.flex}>
         <FlatList
           ref={listRef}
           data={orderedComments}
@@ -407,7 +406,9 @@ export default function PostDetailScreen() {
           windowSize={7}
           updateCellsBatchingPeriod={50}
           keyboardShouldPersistTaps="handled"
-          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+          maintainVisibleContentPosition={
+            keyboardVisible ? undefined : { minIndexForVisible: 0 }
+          }
           onScroll={(event) => {
             currentScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
           }}
@@ -421,6 +422,7 @@ export default function PostDetailScreen() {
           <View style={styles.composerRow}>
             <View style={styles.inputShell}>
               <TextInput
+                ref={commentInputRef}
                 style={styles.input}
                 placeholder="Ваш комментарий"
                 placeholderTextColor={colors.textMuted}
@@ -453,7 +455,7 @@ export default function PostDetailScreen() {
             </Pressable>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }
