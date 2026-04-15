@@ -58,6 +58,9 @@ export interface Comment {
   author: Author;
   text: string;
   createdAt: string;
+  /** When API provides — show per-comment like in post detail (Figma) */
+  likesCount?: number;
+  isLiked?: boolean;
 }
 
 export interface CommentsResponse {

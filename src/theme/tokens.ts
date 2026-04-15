@@ -52,7 +52,7 @@ export const radius = {
 
 /**
  * Post detail comment field + send (Figma Test Assignment — comment composer).
- * Specs: 48px-tall pill, 1px #E5E5EA stroke, 16px horizontal inset, 8px gap to send, #D5C9FF icon.
+ * Specs: 48px-tall pill, 1px #E5E5EA stroke, 16px horizontal inset, 8px gap to send, send icon active/disabled.
  */
 export const commentComposer = {
   fieldMinHeight: 48,
@@ -62,7 +62,14 @@ export const commentComposer = {
   /** Vertical padding so 15/21 text sits optically centered in 48px (incl. border). */
   fieldTextPaddingVertical: 12,
   rowGap: 8,
-  sendIcon: { width: 20, height: 17, color: '#D5C9FF' as const },
+  sendIcon: {
+    width: 20,
+    height: 17,
+    /** Has text, send enabled */
+    colorActive: '#6115CD' as const,
+    /** Empty / sending — disabled */
+    colorDisabled: '#D5C9FF' as const,
+  },
   /** Minimum touch target; icon stays visually centered inside. */
   sendHitSize: 44,
 } as const;
