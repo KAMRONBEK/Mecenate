@@ -19,7 +19,8 @@ export interface Post {
   coverUrl: string;
   likesCount: number;
   commentsCount: number;
-  isLiked: boolean;
+  /** Omitted by some API responses; treat as not liked when absent */
+  isLiked?: boolean;
   tier: PostTier;
   createdAt: string;
 }

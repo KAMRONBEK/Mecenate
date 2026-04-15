@@ -15,8 +15,8 @@ type Props = {
 };
 
 function PostCardInner({ post }: Props) {
-  const { author, preview, coverUrl, likesCount, commentsCount, tier, title, isLiked: isLikedRaw } = post;
-  const userHasLiked = !isLikedRaw;
+  const { author, preview, coverUrl, likesCount, commentsCount, tier, title } = post;
+  const userHasLiked = post.isLiked === true;
   const isPaid = tier === 'paid';
   const name = author.displayName || author.username;
 
