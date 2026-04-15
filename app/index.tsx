@@ -70,7 +70,6 @@ export default function FeedScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <Text style={styles.headerTitle}>Лента</Text>
       <FlatList
         data={posts}
         keyExtractor={keyExtractor}
@@ -109,15 +108,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerTitle: {
-    ...typography.screenTitle,
-    color: colors.textPrimary,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-  },
   listContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
+    flexGrow: 1,
     paddingBottom: spacing.xxl,
   },
   center: {

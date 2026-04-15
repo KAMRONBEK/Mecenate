@@ -1,5 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Image, Platform, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import type { Post } from '@/src/api/types';
 import { colors, radius, spacing, typography } from '@/src/theme/tokens';
@@ -8,27 +8,13 @@ type Props = {
   post: Post;
 };
 
-const cardShadow =
-  Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 10,
-    },
-    android: {
-      elevation: 2,
-    },
-    default: {},
-  }) ?? {};
-
 export function PostCard({ post }: Props) {
   const { author, preview, coverUrl, likesCount, commentsCount, tier, title } = post;
   const isPaid = tier === 'paid';
   const name = author.displayName || author.username;
 
   return (
-    <View style={[styles.card, cardShadow]}>
+    <View style={styles.card}>
       <View style={styles.header}>
         <Image source={{ uri: author.avatarUrl }} style={styles.avatar} accessibilityIgnoresInvertColors />
         <Text style={styles.name} numberOfLines={1}>
@@ -81,11 +67,12 @@ export function PostCard({ post }: Props) {
 
 const styles = StyleSheet.create({
   card: {
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: colors.surface,
-    borderRadius: radius.xl,
     marginBottom: spacing.md,
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   header: {
@@ -112,6 +99,7 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 4 / 3,
     backgroundColor: colors.border,
+    borderWidth: 0,
   },
   textBlock: {
     paddingHorizontal: spacing.lg,
