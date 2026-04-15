@@ -11,6 +11,8 @@ export const colors = {
   textMuted: '#8E8E93',
   border: '#E5E5EA',
   accent: '#007AFF',
+  /** Feed tier tabs — active segment (Figma) */
+  feedTabActive: '#6115CD',
   /** Pills: default icon + label (SVG) */
   iconPill: '#57626F',
   /** Liked like pill — outer background */
