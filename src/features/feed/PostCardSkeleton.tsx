@@ -1,9 +1,42 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { colors, radius, spacing } from '@/src/theme/tokens';
+import { colors, radius, spacing, typography } from '@/src/theme/tokens';
 
-function PostCardSkeletonInner() {
+/** Match PostCard free layout when no measured height yet. */
+const NAME_LINE = typography.title.lineHeight;
+const TITLE_LINE = typography.postTitle.lineHeight;
+const BODY_LINE = typography.body.lineHeight;
+const META_LINE = typography.meta.lineHeight;
+const PILL_PAD_Y = spacing.xs + 2;
+const PILL_HEIGHT = PILL_PAD_Y + META_LINE + PILL_PAD_Y;
+
+type Props = {
+  /** From first post `onLayout` — skeleton row matches that height to avoid scroll jump. */
+  targetHeight?: number | null;
+};
+
+function MeasuredSkeleton({ height }: { height: number }) {
+  return (
+    <View
+      style={[styles.card, { height }]}
+      accessibilityRole="progressbar"
+      accessibilityLabel="Загрузка публикации"
+    >
+      <View style={styles.header}>
+        <View style={styles.avatar} />
+        <View style={styles.nameBar} />
+      </View>
+      <View style={styles.bodyMeasured} />
+      <View style={styles.footer}>
+        <View style={styles.pill} />
+        <View style={styles.pill} />
+      </View>
+    </View>
+  );
+}
+
+function IntrinsicSkeleton() {
   return (
     <View style={styles.card} accessibilityRole="progressbar" accessibilityLabel="Загрузка публикации">
       <View style={styles.header}>
@@ -12,8 +45,12 @@ function PostCardSkeletonInner() {
       </View>
       <View style={styles.cover} />
       <View style={styles.textBlock}>
-        <View style={styles.lineShort} />
-        <View style={styles.lineLong} />
+        <View style={styles.titlePlaceholder} />
+        <View style={styles.previewLines}>
+          <View style={[styles.previewLine, { width: '92%' }]} />
+          <View style={[styles.previewLine, { width: '88%' }]} />
+          <View style={[styles.previewLine, { width: '95%' }]} />
+        </View>
       </View>
       <View style={styles.footer}>
         <View style={styles.pill} />
@@ -21,6 +58,13 @@ function PostCardSkeletonInner() {
       </View>
     </View>
   );
+}
+
+function PostCardSkeletonInner({ targetHeight }: Props) {
+  if (targetHeight != null && targetHeight > 0) {
+    return <MeasuredSkeleton height={targetHeight} />;
+  }
+  return <IntrinsicSkeleton />;
 }
 
 export const PostCardSkeleton = memo(PostCardSkeletonInner);
@@ -49,10 +93,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.skeleton,
   },
   nameBar: {
-    height: 14,
+    height: NAME_LINE,
     flex: 1,
     maxWidth: 160,
     borderRadius: radius.full,
+    backgroundColor: colors.skeleton,
+  },
+  bodyMeasured: {
+    flex: 1,
+    minHeight: 0,
     backgroundColor: colors.skeleton,
   },
   cover: {
@@ -64,17 +113,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  lineShort: {
-    height: 12,
-    width: '42%',
+  titlePlaceholder: {
+    height: TITLE_LINE,
+    width: '48%',
     borderRadius: radius.full,
     backgroundColor: colors.skeleton,
   },
-  lineLong: {
-    height: 12,
-    width: '92%',
+  previewLines: {
+    gap: 0,
+  },
+  previewLine: {
+    height: BODY_LINE,
     borderRadius: radius.full,
     backgroundColor: colors.skeleton,
   },
@@ -88,7 +139,7 @@ const styles = StyleSheet.create({
   },
   pill: {
     width: 72,
-    height: 32,
+    height: PILL_HEIGHT,
     borderRadius: radius.full,
     backgroundColor: colors.skeleton,
   },

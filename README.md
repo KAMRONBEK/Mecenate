@@ -5,7 +5,7 @@
 ## Требования
 
 - Node.js 20+ (LTS)
-- npm или yarn
+- [Yarn](https://yarnpkg.com/) (Classic или Berry)
 - Приложение [Expo Go](https://expo.dev/go) на телефоне (iOS / Android) для запуска без нативной сборки
 
 ## Переменные окружения
@@ -26,8 +26,8 @@ cp .env.example .env
 ## Запуск
 
 ```bash
-npm install
-npx expo start
+yarn install
+yarn expo start
 ```
 
 Дальше:
@@ -50,7 +50,7 @@ npx expo start
 
 | Команда | Действие |
 |---------|----------|
-| `npm start` | Metro + меню Expo |
-| `npm run android` | Запуск на Android |
-| `npm run ios` | Запуск на iOS (нужен macOS для симулятора) |
-| `npm run web` | Веб-версия |
+| `yarn start` | Metro + меню Expo |
+| `yarn android` | Запуск на Android |
+| `yarn ios` | Запуск на iOS (нужен macOS для симулятора) |
+| `yarn web` | Веб-версия |

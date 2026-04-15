@@ -1,7 +1,7 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Image } from 'expo-image';
 import { memo } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
 import HeartFilled from '@/assets/svgs/heart.svg';
 import HeartOutlined from '@/assets/svgs/heart-outlined.svg';
@@ -14,16 +14,18 @@ const PAID_COVER_BLUR_RADIUS = Platform.select({ ios: 44, android: 56, default: 
 
 type Props = {
   post: Post;
+  /** Report outer card size (e.g. first row) so loading skeleton can match height. */
+  onLayout?: (event: LayoutChangeEvent) => void;
 };
 
-function PostCardInner({ post }: Props) {
+function PostCardInner({ post, onLayout }: Props) {
   const { author, preview, coverUrl, likesCount, commentsCount, tier, title } = post;
   const userHasLiked = post.isLiked === true;
   const isPaid = tier === 'paid';
   const name = author.displayName || author.username;
 
   return (
-    <View style={styles.card}>
+    <View style={styles.card} onLayout={onLayout}>
       <View style={styles.header}>
         <Image
           source={{ uri: author.avatarUrl }}
