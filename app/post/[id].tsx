@@ -16,34 +16,30 @@ import {
 import { useKeyboardState } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import HeartFilled from '@/assets/svgs/heart.svg';
-import HeartOutlined from '@/assets/svgs/heart-outlined.svg';
 import MessageIcon from '@/assets/svgs/message.svg';
 import SendIcon from '@/assets/svgs/send.svg';
 import type { Comment } from '@/src/api/types';
+import { DOUBLE_TAP_WINDOW_MS } from '@/src/constants/gestures';
+import {
+  applyCommentLikeToggle,
+  mergeCommentLike,
+  type CommentLikeOverride,
+} from '@/src/features/post-detail/commentLikeLocal';
+import { AnimatedCommentLikePill } from '@/src/features/post-detail/AnimatedCommentLikePill';
+import { AnimatedLikeButton } from '@/src/features/post-detail/AnimatedLikeButton';
 import { useCreateCommentMutation } from '@/src/features/post-detail/useCreateCommentMutation';
 import { usePostCommentsInfiniteQuery } from '@/src/features/post-detail/usePostCommentsInfiniteQuery';
 import { usePostDetailQuery } from '@/src/features/post-detail/usePostDetailQuery';
+import { useDoubleTapAction } from '@/src/features/post-detail/useDoubleTapAction';
+import { useDoubleTapInWindow } from '@/src/features/post-detail/useDoubleTapInWindow';
 import { useTogglePostLikeMutation } from '@/src/features/post-detail/useTogglePostLikeMutation';
 import { colors, commentComposer, radius, spacing, typography } from '@/src/theme/tokens';
 
 /** Enlarged touch target for comment like (icon is small; API has no comment-like endpoint yet). */
 const COMMENT_LIKE_HIT_SLOP = { top: 18, bottom: 18, left: 16, right: 16 } as const;
 
-/** Second tap within this window (same comment) counts as double-tap → like */
-const COMMENT_DOUBLE_TAP_MS = 280;
 const COMMENTS_REVEAL_TOP_PADDING = spacing.sm;
 const COMMENT_AFTER_SEND_EXTRA_OFFSET = 72;
-
-type CommentLikeOverride = { likesCount: number; isLiked: boolean };
-
-function mergeCommentLike(comment: Comment, override?: CommentLikeOverride): CommentLikeOverride {
-  if (override) return override;
-  return {
-    likesCount: comment.likesCount ?? 0,
-    isLiked: comment.isLiked === true,
-  };
-}
 
 /** Russian plural for "комментарий" — matches Figma "4 комментария" style labels */
 function formatRuCommentsCount(n: number): string {
@@ -58,27 +54,33 @@ function formatRuCommentsCount(n: number): string {
 type CommentRowProps = {
   comment: Comment;
   override?: CommentLikeOverride;
-  onContentPress: (comment: Comment) => void;
+  /** Fires on second tap on comment body (toggle like). Own timer per row — not shared with post. */
+  onDoubleTapToggleLike: (comment: Comment) => void;
   onLikePress: (comment: Comment) => void;
 };
 
 const CommentRow = ({
   comment,
   override,
-  onContentPress,
+  onDoubleTapToggleLike,
   onLikePress,
 }: CommentRowProps) => {
   const { author, text } = comment;
   const name = author.displayName || author.username;
   const { likesCount, isLiked } = mergeCommentLike(comment, override);
+  const onBodyPress = useDoubleTapAction(
+    DOUBLE_TAP_WINDOW_MS,
+    () => onDoubleTapToggleLike(comment),
+    comment.id
+  );
 
   return (
     <View style={styles.commentRow}>
       <Pressable
-        onPress={() => onContentPress(comment)}
+        onPress={onBodyPress}
         style={styles.commentTapArea}
         accessibilityRole="button"
-        accessibilityLabel="Комментарий. Дважды нажмите, чтобы поставить лайк"
+        accessibilityLabel="Комментарий. Дважды нажмите, чтобы поставить или убрать лайк"
       >
         <Image source={{ uri: author.avatarUrl }} style={styles.commentAvatar} contentFit="cover" />
         <View style={styles.commentBody}>
@@ -86,21 +88,12 @@ const CommentRow = ({
           <Text style={styles.commentText}>{text}</Text>
         </View>
       </Pressable>
-      <Pressable
-        hitSlop={COMMENT_LIKE_HIT_SLOP}
+      <AnimatedCommentLikePill
+        likesCount={likesCount}
+        isLiked={isLiked}
         onPress={() => onLikePress(comment)}
-        style={({ pressed }) => [styles.commentLikePressable, pressed && styles.commentLikePressed]}
-        accessibilityRole="button"
-        accessibilityLabel={isLiked ? 'Убрать лайк с комментария' : 'Лайкнуть комментарий'}
-        accessibilityState={{ selected: isLiked }}
-      >
-        {isLiked ? (
-          <HeartFilled width={17} height={15} color={colors.likePillActive} />
-        ) : (
-          <HeartOutlined width={17} height={15} color={colors.iconPill} />
-        )}
-        <Text style={[styles.commentLikeCount, isLiked && styles.commentLikeCountActive]}>{likesCount}</Text>
-      </Pressable>
+        hitSlop={COMMENT_LIKE_HIT_SLOP}
+      />
     </View>
   );
 };
@@ -110,7 +103,7 @@ const MemoCommentRow = memo(CommentRow, (prev, next) => {
     prev.comment === next.comment &&
     prev.override?.likesCount === next.override?.likesCount &&
     prev.override?.isLiked === next.override?.isLiked &&
-    prev.onContentPress === next.onContentPress &&
+    prev.onDoubleTapToggleLike === next.onDoubleTapToggleLike &&
     prev.onLikePress === next.onLikePress
   );
 });
@@ -193,44 +186,35 @@ export default function PostDetailScreen() {
     commentInputRef.current?.focus();
   }, []);
 
-  const lastCommentTapRef = useRef<{ id: string; time: number } | null>(null);
+  const tryDoubleTap = useDoubleTapInWindow(DOUBLE_TAP_WINDOW_MS);
 
-  const ensureCommentLiked = useCallback((comment: Comment) => {
-    let applied = false;
-    setCommentLikeOverrides((prev) => {
-      const cur = mergeCommentLike(comment, prev[comment.id]);
-      if (cur.isLiked) return prev;
-      applied = true;
-      return {
-        ...prev,
-        [comment.id]: { likesCount: cur.likesCount + 1, isLiked: true },
-      };
-    });
-    if (applied) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const togglePostLikeOnDoubleTap = useCallback(() => {
+    if (!post) return;
+    toggleLike();
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, [post, toggleLike]);
+
+  const onPostContentPress = useCallback(() => {
+    tryDoubleTap('post', togglePostLikeOnDoubleTap);
+  }, [tryDoubleTap, togglePostLikeOnDoubleTap]);
+
+  const runCommentLikeToggle = useCallback((comment: Comment, haptic: 'light' | 'medium') => {
+    void Haptics.impactAsync(
+      haptic === 'light'
+        ? Haptics.ImpactFeedbackStyle.Light
+        : Haptics.ImpactFeedbackStyle.Medium
+    );
+    setCommentLikeOverrides((prev) => applyCommentLikeToggle(prev, comment));
   }, []);
 
-  const toggleCommentLike = useCallback((comment: Comment) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setCommentLikeOverrides((prev) => {
-      const cur = mergeCommentLike(comment, prev[comment.id]);
-      const nextLiked = !cur.isLiked;
-      const nextCount = Math.max(0, cur.likesCount + (nextLiked ? 1 : -1));
-      return { ...prev, [comment.id]: { likesCount: nextCount, isLiked: nextLiked } };
-    });
-  }, []);
+  const toggleCommentLike = useCallback(
+    (comment: Comment) => runCommentLikeToggle(comment, 'light'),
+    [runCommentLikeToggle]
+  );
 
-  const onCommentContentPress = useCallback(
-    (comment: Comment) => {
-      const now = Date.now();
-      const prev = lastCommentTapRef.current;
-      if (prev && prev.id === comment.id && now - prev.time < COMMENT_DOUBLE_TAP_MS) {
-        lastCommentTapRef.current = null;
-        ensureCommentLiked(comment);
-        return;
-      }
-      lastCommentTapRef.current = { id: comment.id, time: now };
-    },
-    [ensureCommentLiked]
+  const toggleCommentLikeOnDoubleTap = useCallback(
+    (comment: Comment) => runCommentLikeToggle(comment, 'medium'),
+    [runCommentLikeToggle]
   );
 
   const renderItem: ListRenderItem<Comment> = useCallback(
@@ -238,11 +222,11 @@ export default function PostDetailScreen() {
       <MemoCommentRow
         comment={item}
         override={commentLikeOverrides[item.id]}
-        onContentPress={onCommentContentPress}
+        onDoubleTapToggleLike={toggleCommentLikeOnDoubleTap}
         onLikePress={toggleCommentLike}
       />
     ),
-    [commentLikeOverrides, onCommentContentPress, toggleCommentLike]
+    [commentLikeOverrides, toggleCommentLikeOnDoubleTap, toggleCommentLike]
   );
 
   const listFooter = useMemo(() => {
@@ -282,37 +266,35 @@ export default function PostDetailScreen() {
             </View>
           </View>
         </View>
-        {post.coverUrl ? (
-          <Image source={{ uri: post.coverUrl }} style={styles.cover} contentFit="cover" />
-        ) : null}
-        <View style={styles.postHeadPadded}>
-          <View style={styles.textBlock}>
-            {post.title ? <Text style={styles.title}>{post.title}</Text> : null}
-            {isPaid && !post.body ? (
-              <Text style={styles.bodyMuted}>Платный контент. Текст доступен после подписки.</Text>
-            ) : (
-              <Text style={styles.body}>{post.body || post.preview}</Text>
-            )}
-          </View>
-          <View style={styles.engagementRow}>
-            <Pressable
-              onPress={() => toggleLike()}
-              disabled={likePending}
-              style={({ pressed }) => [
-                styles.pill,
-                userHasLiked && styles.pillLiked,
-                pressed && styles.pillPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Лайки"
-            >
-              {userHasLiked ? (
-                <HeartFilled width={17} height={15} color={colors.likePillOnActive} />
+        <Pressable
+          onPress={onPostContentPress}
+          accessibilityRole="button"
+          accessibilityLabel="Публикация. Дважды нажмите, чтобы поставить или убрать лайк"
+        >
+          {post.coverUrl ? (
+            <Image source={{ uri: post.coverUrl }} style={styles.cover} contentFit="cover" />
+          ) : null}
+          <View style={styles.postHeadPadded}>
+            <View style={styles.textBlock}>
+              {post.title ? <Text style={styles.title}>{post.title}</Text> : null}
+              {isPaid && !post.body ? (
+                <Text style={styles.bodyMuted}>Платный контент. Текст доступен после подписки.</Text>
               ) : (
-                <HeartOutlined width={17} height={15} color={colors.iconPill} />
+                <Text style={styles.body}>{post.body || post.preview}</Text>
               )}
-              <Text style={[styles.pillText, userHasLiked && styles.pillTextLiked]}>{post.likesCount}</Text>
-            </Pressable>
+            </View>
+          </View>
+        </Pressable>
+        <View style={styles.postHeadPadded}>
+          <View style={styles.engagementRow}>
+            <AnimatedLikeButton
+              variant="compact"
+              likesCount={post.likesCount}
+              isLiked={userHasLiked}
+              disabled={likePending}
+              onPress={() => toggleLike()}
+              accessibilityLabel="Лайки"
+            />
             <Pressable
               onPress={focusCommentInput}
               style={({ pressed }) => [styles.pill, pressed && styles.pillPressed]}
@@ -343,7 +325,15 @@ export default function PostDetailScreen() {
         </View>
       </View>
     );
-  }, [post, likePending, toggleLike, commentsNewestFirst, handleCommentsSectionLayout, focusCommentInput]);
+  }, [
+    post,
+    likePending,
+    toggleLike,
+    commentsNewestFirst,
+    handleCommentsSectionLayout,
+    focusCommentInput,
+    onPostContentPress,
+  ]);
 
   const keyExtractor = useCallback((item: Comment) => item.id, []);
 
@@ -553,15 +543,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
   },
-  pillLiked: {
-    backgroundColor: colors.likePillActive,
-  },
   pillText: {
     ...typography.meta,
     color: colors.iconPill,
-  },
-  pillTextLiked: {
-    color: colors.likePillOnActive,
   },
   pillPressed: {
     opacity: 0.88,
@@ -618,26 +602,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     marginTop: 2,
-  },
-  commentLikePressable: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    marginVertical: -spacing.sm,
-    marginRight: -spacing.sm,
-  },
-  commentLikePressed: {
-    opacity: 0.75,
-  },
-  commentLikeCount: {
-    ...typography.meta,
-    color: colors.iconPill,
-    minWidth: 16,
-  },
-  commentLikeCountActive: {
-    color: colors.likePillActive,
   },
   commentLoading: {
     padding: spacing.lg,

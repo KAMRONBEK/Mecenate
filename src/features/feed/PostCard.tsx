@@ -1,12 +1,12 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Image } from 'expo-image';
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
-import HeartFilled from '@/assets/svgs/heart.svg';
-import HeartOutlined from '@/assets/svgs/heart-outlined.svg';
 import MessageIcon from '@/assets/svgs/message.svg';
 import type { Post } from '@/src/api/types';
+import { AnimatedLikeButton } from '@/src/features/post-detail/AnimatedLikeButton';
+import { useFeedCardMainPress } from '@/src/features/feed/useFeedCardMainPress';
 import { colors, radius, spacing, typography } from '@/src/theme/tokens';
 
 /** expo-image blur only — expo-blur + Image crashes on Android when scrolling (expo#24572). */
@@ -41,10 +41,21 @@ function PostCardInner({
 
   const mainAccessibilityLabel = `Публикация: ${title || preview || 'без названия'}`;
 
+  const handleMainPress = useFeedCardMainPress(
+    useMemo(
+      () => ({
+        onPressContent,
+        onPressLike,
+        likeDisabled: likeDisabled ?? false,
+      }),
+      [onPressContent, onPressLike, likeDisabled]
+    )
+  );
+
   return (
     <View style={styles.card} onLayout={onLayout}>
       <Pressable
-        onPress={onPressContent}
+        onPress={handleMainPress}
         disabled={!onPressContent}
         accessibilityRole={onPressContent ? 'button' : undefined}
         accessibilityLabel={onPressContent ? mainAccessibilityLabel : undefined}
@@ -130,24 +141,14 @@ function PostCardInner({
       </Pressable>
 
       <View style={styles.footer}>
-        <Pressable
-          onPress={onPressLike}
+        <AnimatedLikeButton
+          variant="compact"
+          likesCount={likesCount}
+          isLiked={userHasLiked}
           disabled={!onPressLike || likeDisabled}
-          style={({ pressed }) => [
-            styles.pill,
-            userHasLiked && styles.pillLiked,
-            pressed && onPressLike && styles.pillPressed,
-          ]}
-          accessibilityRole="button"
+          onPress={() => onPressLike?.()}
           accessibilityLabel="Лайки"
-        >
-          {userHasLiked ? (
-            <HeartFilled width={17} height={15} color={colors.likePillOnActive} />
-          ) : (
-            <HeartOutlined width={17} height={15} color={colors.iconPill} />
-          )}
-          <Text style={[styles.pillText, userHasLiked && styles.pillTextLiked]}>{likesCount}</Text>
-        </Pressable>
+        />
         <Pressable
           onPress={onPressComments}
           disabled={!onPressComments}
@@ -321,15 +322,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
   },
-  pillLiked: {
-    backgroundColor: colors.likePillActive,
-  },
   pillText: {
     ...typography.meta,
     color: colors.iconPill,
-  },
-  pillTextLiked: {
-    color: colors.likePillOnActive,
   },
   pillPressed: {
     opacity: 0.88,

@@ -1,70 +1,82 @@
 import * as Haptics from 'expo-haptics';
-import { memo, useEffect, useRef } from 'react';
+import { memo } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 
 import HeartFilled from '@/assets/svgs/heart.svg';
 import HeartOutlined from '@/assets/svgs/heart-outlined.svg';
+import { useLikePulseOnCountChange } from '@/src/features/post-detail/useLikePulseOnCountChange';
 import { colors, radius, spacing, typography } from '@/src/theme/tokens';
+import Animated from 'react-native-reanimated';
+
+export type AnimatedLikeButtonVariant = 'large' | 'compact';
 
 type Props = {
   likesCount: number;
   isLiked: boolean;
   disabled?: boolean;
   onPress: () => void;
+  variant?: AnimatedLikeButtonVariant;
+  accessibilityLabel?: string;
 };
 
-function AnimatedLikeButtonInner({ likesCount, isLiked, disabled, onPress }: Props) {
-  const scale = useSharedValue(1);
-  const countScale = useSharedValue(1);
-  const skipFirstCountAnim = useRef(true);
-
-  useEffect(() => {
-    if (skipFirstCountAnim.current) {
-      skipFirstCountAnim.current = false;
-      return;
-    }
-    countScale.value = withSequence(
-      withTiming(1.12, { duration: 160 }),
-      withTiming(1, { duration: 180 })
-    );
-  }, [likesCount, countScale]);
-
-  const heartStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const countStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: countScale.value }],
-  }));
+function AnimatedLikeButtonInner({
+  likesCount,
+  isLiked,
+  disabled,
+  onPress,
+  variant = 'large',
+  accessibilityLabel,
+}: Props) {
+  const { heartStyle, countStyle } = useLikePulseOnCountChange(likesCount);
+  const compact = variant === 'compact';
 
   const handlePress = () => {
-    scale.value = withSequence(withTiming(1.18, { duration: 90 }), withTiming(1, { duration: 120 }));
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onPress();
   };
+
+  const label =
+    accessibilityLabel ?? (isLiked ? 'Убрать лайк' : 'Лайкнуть');
 
   return (
     <Pressable
       onPress={handlePress}
       disabled={disabled}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed, disabled && styles.disabled]}
+      style={({ pressed }) => [
+        compact ? styles.rowCompact : styles.rowLarge,
+        isLiked && compact && styles.rowCompactLiked,
+        pressed && styles.pressed,
+        disabled && styles.disabled,
+      ]}
       accessibilityRole="button"
-      accessibilityLabel={isLiked ? 'Убрать лайк' : 'Лайкнуть'}
+      accessibilityLabel={label}
+      accessibilityState={{ selected: isLiked }}
     >
       <Animated.View style={heartStyle}>
         {isLiked ? (
-          <HeartFilled width={22} height={20} color={colors.likePillOnActive} />
+          <HeartFilled
+            width={compact ? 17 : 22}
+            height={compact ? 15 : 20}
+            color={colors.likePillOnActive}
+          />
         ) : (
-          <HeartOutlined width={22} height={20} color={colors.iconPill} />
+          <HeartOutlined
+            width={compact ? 17 : 22}
+            height={compact ? 15 : 20}
+            color={colors.iconPill}
+          />
         )}
       </Animated.View>
-      <Animated.Text style={[styles.count, isLiked && styles.countLiked, countStyle]}>{likesCount}</Animated.Text>
+      <Animated.Text
+        style={[
+          compact ? styles.countCompact : styles.countLarge,
+          isLiked && compact && styles.countCompactLiked,
+          isLiked && !compact && styles.countLargeLiked,
+          countStyle,
+        ]}
+      >
+        {likesCount}
+      </Animated.Text>
     </Pressable>
   );
 }
@@ -72,7 +84,7 @@ function AnimatedLikeButtonInner({ likesCount, isLiked, disabled, onPress }: Pro
 export const AnimatedLikeButton = memo(AnimatedLikeButtonInner);
 
 const styles = StyleSheet.create({
-  row: {
+  rowLarge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -82,19 +94,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderRadius: radius.full,
   },
+  rowCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.pillBackground,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+  },
+  rowCompactLiked: {
+    backgroundColor: colors.likePillActive,
+  },
   pressed: {
-    opacity: 0.92,
+    opacity: 0.88,
   },
   disabled: {
     opacity: 0.5,
   },
-  count: {
+  countLarge: {
     ...typography.title,
     fontSize: 18,
     color: colors.iconPill,
     minWidth: 28,
   },
-  countLiked: {
+  countLargeLiked: {
     color: colors.likePillActive,
+  },
+  countCompact: {
+    ...typography.meta,
+    color: colors.iconPill,
+    minWidth: 16,
+  },
+  countCompactLiked: {
+    color: colors.likePillOnActive,
   },
 });
