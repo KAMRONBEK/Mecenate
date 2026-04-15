@@ -72,8 +72,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     marginBottom: spacing.md,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: radius.xl,
   },
   header: {
     flexDirection: 'row',
