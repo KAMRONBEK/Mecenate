@@ -50,6 +50,23 @@ export const radius = {
   full: 9999,
 } as const;
 
+/**
+ * Post detail comment field + send (Figma Test Assignment — comment composer).
+ * Specs: 48px-tall pill, 1px #E5E5EA stroke, 16px horizontal inset, 8px gap to send, #D5C9FF icon.
+ */
+export const commentComposer = {
+  fieldMinHeight: 48,
+  fieldBorderWidth: 1,
+  fieldBorderColor: '#E5E5EA',
+  fieldPaddingHorizontal: 16,
+  /** Vertical padding so 15/21 text sits optically centered in 48px (incl. border). */
+  fieldTextPaddingVertical: 12,
+  rowGap: 8,
+  sendIcon: { width: 20, height: 17, color: '#D5C9FF' as const },
+  /** Minimum touch target; icon stays visually centered inside. */
+  sendHitSize: 44,
+} as const;
+
 export const typography = {
   /** Screen title "Лента" */
   screenTitle: { fontSize: 28, fontWeight: '700' as const, lineHeight: 34, letterSpacing: -0.5 },
