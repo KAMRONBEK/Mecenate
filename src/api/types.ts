@@ -1,5 +1,8 @@
 export type PostTier = 'free' | 'paid';
 
+/** Feed tab: omit tier query for "all" */
+export type FeedTierFilter = 'all' | PostTier;
+
 export interface Author {
   id: string;
   username: string;
@@ -31,6 +34,45 @@ export interface PostsResponse {
     posts: Post[];
     nextCursor: string | null;
     hasMore: boolean;
+  };
+}
+
+export interface PostDetailResponse {
+  ok: boolean;
+  data: {
+    post: Post;
+  };
+}
+
+export interface LikeResponse {
+  ok: boolean;
+  data: {
+    isLiked: boolean;
+    likesCount: number;
+  };
+}
+
+export interface Comment {
+  id: string;
+  postId: string;
+  author: Author;
+  text: string;
+  createdAt: string;
+}
+
+export interface CommentsResponse {
+  ok: boolean;
+  data: {
+    comments: Comment[];
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
+}
+
+export interface CommentCreatedResponse {
+  ok: boolean;
+  data: {
+    comment: Comment;
   };
 }
 
