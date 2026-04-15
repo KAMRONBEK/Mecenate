@@ -16,15 +16,17 @@ type Props = {
   post: Post;
   /** Report outer card size — used for pagination skeleton height (last row anchor). */
   onLayout?: (event: LayoutChangeEvent) => void;
+  /** Tap opens post detail when provided */
+  onPress?: () => void;
 };
 
-function PostCardInner({ post, onLayout }: Props) {
+function PostCardInner({ post, onLayout, onPress }: Props) {
   const { author, preview, coverUrl, likesCount, commentsCount, tier, title } = post;
   const userHasLiked = post.isLiked === true;
   const isPaid = tier === 'paid';
   const name = author.displayName || author.username;
 
-  return (
+  const card = (
     <View style={styles.card} onLayout={onLayout}>
       <View style={styles.header}>
         <Image
@@ -120,6 +122,20 @@ function PostCardInner({ post, onLayout }: Props) {
       </View>
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Публикация: ${title || preview || 'без названия'}`}
+      >
+        {card}
+      </Pressable>
+    );
+  }
+
+  return card;
 }
 
 export const PostCard = memo(PostCardInner);

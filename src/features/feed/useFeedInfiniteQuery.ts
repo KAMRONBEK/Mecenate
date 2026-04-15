@@ -1,27 +1,26 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 
 import { fetchPostsPage } from '@/src/api/http';
+import type { FeedTierFilter } from '@/src/api/types';
 import { FEED_PAGE_SIZE } from '@/src/features/feed/feedListConfig';
 import { authStore } from '@/src/stores/authStore';
 
-/** Extra wait before each feed request so skeleton / loading states are visible. Set to `0` to disable. */
-const FEED_ARTIFICIAL_DELAY_MS = 2000;
+type Options = {
+  tier?: FeedTierFilter;
+};
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export function useFeedInfiniteQuery() {
+export function useFeedInfiniteQuery(options: Options = {}) {
+  const { tier = 'all' } = options;
   return useInfiniteQuery({
-    queryKey: ['posts', 'feed', authStore.userId],
+    queryKey: ['posts', 'feed', authStore.userId, tier],
     initialPageParam: undefined as string | undefined,
+    /** Avoid empty layout / full-screen loader when switching tier tabs. */
+    placeholderData: keepPreviousData,
     queryFn: async ({ pageParam }) => {
-      if (FEED_ARTIFICIAL_DELAY_MS > 0) {
-        await delay(FEED_ARTIFICIAL_DELAY_MS);
-      }
       const res = await fetchPostsPage({
         limit: FEED_PAGE_SIZE,
         cursor: pageParam,
+        tier,
       });
       if (!res.ok) {
         throw new Error('Feed response not ok');

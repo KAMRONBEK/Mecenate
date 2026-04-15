@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'expo-router';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,8 +11,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { Post } from '@/src/api/types';
+import type { FeedTierFilter, Post } from '@/src/api/types';
 import { FeedErrorState } from '@/src/features/feed/FeedErrorState';
+import { FeedTierTabs } from '@/src/features/feed/FeedTierTabs';
 import {
   FEED_END_REACHED_THRESHOLD,
   FEED_LIST_INITIAL_NUM,
@@ -35,8 +37,11 @@ function FeedEmptyState() {
 }
 
 export default function FeedScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const endReachedBusy = useRef(false);
+  const listRef = useRef<FlatList<FeedListItem>>(null);
+  const [tier, setTier] = useState<FeedTierFilter>('all');
 
   const {
     data,
@@ -47,7 +52,13 @@ export default function FeedScreen() {
     fetchNextPage,
     refetch,
     isRefetching,
-  } = useFeedInfiniteQuery();
+    isFetching,
+    isPlaceholderData,
+  } = useFeedInfiniteQuery({ tier });
+
+  useLayoutEffect(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [tier]);
 
   const posts = useMemo(() => data?.pages.flatMap((p) => p.posts) ?? [], [data]);
 
@@ -77,9 +88,13 @@ export default function FeedScreen() {
       item.type === 'loading' ? (
         <PostCardSkeleton targetHeight={anchorHeight} />
       ) : (
-        <PostCard post={item.post} onLayout={isAnchorIndex(index) ? onAnchorPostLayout : undefined} />
+        <PostCard
+          post={item.post}
+          onLayout={isAnchorIndex(index) ? onAnchorPostLayout : undefined}
+          onPress={() => router.push({ pathname: '/post/[id]', params: { id: item.post.id } })}
+        />
       ),
-    [anchorHeight, onAnchorPostLayout, isAnchorIndex]
+    [anchorHeight, onAnchorPostLayout, isAnchorIndex, router]
   );
 
   const keyExtractor = useCallback((item: FeedListItem) => (item.type === 'loading' ? '__loading__' : item.post.id), []);
@@ -99,14 +114,29 @@ export default function FeedScreen() {
   if (isPending && !data) {
     return (
       <View style={[styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
+        <ActivityIndicator size="large" color={colors.feedTabActive} />
       </View>
     );
   }
 
+  const showTierLoading = isFetching && isPlaceholderData;
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <View style={styles.feedToolbar}>
+        <View style={styles.feedToolbarRow}>
+          <View style={styles.feedTabsWrap}>
+            <FeedTierTabs value={tier} onChange={setTier} />
+          </View>
+          {showTierLoading ? (
+            <ActivityIndicator size="small" color={colors.feedTabActive} />
+          ) : (
+            <View style={styles.toolbarSpinnerSlot} />
+          )}
+        </View>
+      </View>
       <FlatList
+        ref={listRef}
         data={listData}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
@@ -124,7 +154,7 @@ export default function FeedScreen() {
           <RefreshControl
             refreshing={isRefetching && !isFetchingNextPage}
             onRefresh={() => void refetch()}
-            tintColor={colors.accent}
+            tintColor={colors.feedTabActive}
           />
         }
         ListEmptyComponent={FeedEmptyState}
@@ -138,8 +168,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  feedToolbar: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  feedToolbarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  feedTabsWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  toolbarSpinnerSlot: {
+    width: 24,
+    height: 24,
+  },
   listContent: {
     flexGrow: 1,
+    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
   },
   center: {
