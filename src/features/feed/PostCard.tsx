@@ -3,6 +3,9 @@ import { Image } from 'expo-image';
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import HeartFilled from '@/assets/svgs/heart.svg';
+import HeartOutlined from '@/assets/svgs/heart-outlined.svg';
+import MessageIcon from '@/assets/svgs/message.svg';
 import type { Post } from '@/src/api/types';
 import { colors, radius, spacing, typography } from '@/src/theme/tokens';
 
@@ -11,7 +14,7 @@ type Props = {
 };
 
 function PostCardInner({ post }: Props) {
-  const { author, preview, coverUrl, likesCount, commentsCount, tier, title } = post;
+  const { author, preview, coverUrl, likesCount, commentsCount, tier, title, isLiked } = post;
   const isPaid = tier === 'paid';
   const name = author.displayName || author.username;
 
@@ -64,11 +67,15 @@ function PostCardInner({ post }: Props) {
 
       <View style={styles.footer}>
         <View style={styles.pill}>
-          <FontAwesome name="heart-o" size={15} color={colors.textMuted} />
+          {isLiked ? (
+            <HeartFilled width={17} height={15} accessibilityLabel="Лайки" />
+          ) : (
+            <HeartOutlined width={17} height={15} accessibilityLabel="Лайки" />
+          )}
           <Text style={styles.pillText}>{likesCount}</Text>
         </View>
         <View style={styles.pill}>
-          <FontAwesome name="comment-o" size={15} color={colors.textMuted} />
+          <MessageIcon width={15} height={15} accessibilityLabel="Комментарии" />
           <Text style={styles.pillText}>{commentsCount}</Text>
         </View>
       </View>
