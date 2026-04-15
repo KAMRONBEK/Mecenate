@@ -15,7 +15,8 @@ type Props = {
 };
 
 function PostCardInner({ post }: Props) {
-  const { author, preview, coverUrl, likesCount, commentsCount, tier, title, isLiked } = post;
+  const { author, preview, coverUrl, likesCount, commentsCount, tier, title, isLiked: isLikedRaw } = post;
+  const userHasLiked = !isLikedRaw;
   const isPaid = tier === 'paid';
   const name = author.displayName || author.username;
 
@@ -99,13 +100,13 @@ function PostCardInner({ post }: Props) {
       )}
 
       <View style={styles.footer}>
-        <View style={[styles.pill, isLiked && styles.pillLiked]}>
-          {isLiked ? (
+        <View style={[styles.pill, userHasLiked && styles.pillLiked]}>
+          {userHasLiked ? (
             <HeartFilled width={17} height={15} color={colors.likePillOnActive} accessibilityLabel="Лайки" />
           ) : (
             <HeartOutlined width={17} height={15} color={colors.iconPill} accessibilityLabel="Лайки" />
           )}
-          <Text style={[styles.pillText, isLiked && styles.pillTextLiked]}>{likesCount}</Text>
+          <Text style={[styles.pillText, userHasLiked && styles.pillTextLiked]}>{likesCount}</Text>
         </View>
         <View style={styles.pill}>
           <MessageIcon width={15} height={15} color={colors.iconPill} accessibilityLabel="Комментарии" />
