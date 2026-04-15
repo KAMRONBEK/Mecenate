@@ -1,9 +1,8 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 
 import { fetchPostsPage } from '@/src/api/http';
+import { FEED_PAGE_SIZE } from '@/src/features/feed/feedListConfig';
 import { authStore } from '@/src/stores/authStore';
-
-const FEED_LIMIT = 10;
 
 export function useFeedInfiniteQuery() {
   return useInfiniteQuery({
@@ -11,7 +10,7 @@ export function useFeedInfiniteQuery() {
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
       const res = await fetchPostsPage({
-        limit: FEED_LIMIT,
+        limit: FEED_PAGE_SIZE,
         cursor: pageParam,
       });
       if (!res.ok) {

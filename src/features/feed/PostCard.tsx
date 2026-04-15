@@ -1,5 +1,7 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { memo } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 import type { Post } from '@/src/api/types';
 import { colors, radius, spacing, typography } from '@/src/theme/tokens';
@@ -8,7 +10,7 @@ type Props = {
   post: Post;
 };
 
-export function PostCard({ post }: Props) {
+function PostCardInner({ post }: Props) {
   const { author, preview, coverUrl, likesCount, commentsCount, tier, title } = post;
   const isPaid = tier === 'paid';
   const name = author.displayName || author.username;
@@ -16,7 +18,14 @@ export function PostCard({ post }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Image source={{ uri: author.avatarUrl }} style={styles.avatar} accessibilityIgnoresInvertColors />
+        <Image
+          source={{ uri: author.avatarUrl }}
+          style={styles.avatar}
+          recyclingKey={`${post.id}-avatar`}
+          cachePolicy="memory-disk"
+          priority="low"
+          contentFit="cover"
+        />
         <Text style={styles.name} numberOfLines={1}>
           {name}
         </Text>
@@ -26,8 +35,10 @@ export function PostCard({ post }: Props) {
         <Image
           source={{ uri: coverUrl }}
           style={styles.cover}
-          resizeMode="cover"
-          accessibilityIgnoresInvertColors
+          recyclingKey={`${post.id}-cover`}
+          cachePolicy="memory-disk"
+          priority="normal"
+          contentFit="cover"
         />
       ) : null}
 
@@ -65,6 +76,8 @@ export function PostCard({ post }: Props) {
   );
 }
 
+export const PostCard = memo(PostCardInner);
+
 const styles = StyleSheet.create({
   card: {
     width: '100%',
@@ -98,7 +111,6 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 4 / 3,
     backgroundColor: colors.border,
-    borderWidth: 0,
   },
   textBlock: {
     paddingHorizontal: spacing.lg,

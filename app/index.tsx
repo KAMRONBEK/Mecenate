@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   ListRenderItem,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -12,9 +13,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Post } from '@/src/api/types';
 import { FeedErrorState } from '@/src/features/feed/FeedErrorState';
+import {
+  FEED_LIST_INITIAL_NUM,
+  FEED_LIST_MAX_BATCH,
+  FEED_LIST_WINDOW_SIZE,
+} from '@/src/features/feed/feedListConfig';
 import { PostCard } from '@/src/features/feed/PostCard';
 import { useFeedInfiniteQuery } from '@/src/features/feed/useFeedInfiniteQuery';
 import { colors, spacing, typography } from '@/src/theme/tokens';
+
+function FeedEmptyState() {
+  return (
+    <View style={styles.empty}>
+      <Text style={styles.emptyText}>Нет публикаций</Text>
+    </View>
+  );
+}
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
@@ -48,6 +62,16 @@ export default function FeedScreen() {
 
   const keyExtractor = useCallback((item: Post) => item.id, []);
 
+  const listFooter = useMemo(
+    () =>
+      isFetchingNextPage ? (
+        <View style={styles.footer}>
+          <ActivityIndicator color={colors.accent} />
+        </View>
+      ) : null,
+    [isFetchingNextPage]
+  );
+
   const showFatalError = isError && posts.length === 0;
 
   if (showFatalError) {
@@ -76,6 +100,11 @@ export default function FeedScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={Platform.OS !== 'web'}
+        initialNumToRender={FEED_LIST_INITIAL_NUM}
+        maxToRenderPerBatch={FEED_LIST_MAX_BATCH}
+        windowSize={FEED_LIST_WINDOW_SIZE}
+        updateCellsBatchingPeriod={50}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.35}
         refreshControl={
@@ -85,20 +114,8 @@ export default function FeedScreen() {
             tintColor={colors.accent}
           />
         }
-        ListFooterComponent={
-          isFetchingNextPage ? (
-            <View style={styles.footer}>
-              <ActivityIndicator color={colors.accent} />
-            </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          !isPending ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>Нет публикаций</Text>
-            </View>
-          ) : null
-        }
+        ListFooterComponent={listFooter}
+        ListEmptyComponent={FeedEmptyState}
       />
     </View>
   );
