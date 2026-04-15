@@ -1,5 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 
 import type { Post } from '@/src/api/types';
 import { colors, radius, spacing, typography } from '@/src/theme/tokens';
@@ -8,37 +8,33 @@ type Props = {
   post: Post;
 };
 
+const cardShadow =
+  Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 10,
+    },
+    android: {
+      elevation: 2,
+    },
+    default: {},
+  }) ?? {};
+
 export function PostCard({ post }: Props) {
   const { author, preview, coverUrl, likesCount, commentsCount, tier, title } = post;
   const isPaid = tier === 'paid';
   const name = author.displayName || author.username;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, cardShadow]}>
       <View style={styles.header}>
         <Image source={{ uri: author.avatarUrl }} style={styles.avatar} accessibilityIgnoresInvertColors />
-        <View style={styles.headerText}>
-          <Text style={styles.name} numberOfLines={1}>
-            {name}
-          </Text>
-          {title ? (
-            <Text style={styles.title} numberOfLines={2}>
-              {title}
-            </Text>
-          ) : null}
-        </View>
-      </View>
-
-      {isPaid ? (
-        <View style={styles.paidBox} accessibilityLabel="Закрытый пост для подписчиков">
-          <FontAwesome name="lock" size={16} color={colors.textMuted} />
-          <Text style={styles.paidText}>Закрытый пост для подписчиков</Text>
-        </View>
-      ) : (
-        <Text style={styles.preview} numberOfLines={4}>
-          {preview}
+        <Text style={styles.name} numberOfLines={1}>
+          {name}
         </Text>
-      )}
+      </View>
 
       {coverUrl ? (
         <Image
@@ -49,14 +45,34 @@ export function PostCard({ post }: Props) {
         />
       ) : null}
 
-      <View style={styles.meta}>
-        <View style={styles.metaItem}>
-          <FontAwesome name="heart" size={14} color={colors.textMuted} />
-          <Text style={styles.metaText}>{likesCount}</Text>
+      <View style={styles.textBlock}>
+        {isPaid ? (
+          <View style={styles.paidBox} accessibilityLabel="Закрытый пост для подписчиков">
+            <FontAwesome name="lock" size={16} color={colors.textMuted} />
+            <Text style={styles.paidText}>Этот контент доступен только для подписчиков</Text>
+          </View>
+        ) : (
+          <>
+            {title ? (
+              <Text style={styles.postTitle} numberOfLines={2}>
+                {title}
+              </Text>
+            ) : null}
+            <Text style={styles.preview} numberOfLines={3}>
+              {preview}
+            </Text>
+          </>
+        )}
+      </View>
+
+      <View style={styles.footer}>
+        <View style={styles.pill}>
+          <FontAwesome name="heart-o" size={15} color={colors.textMuted} />
+          <Text style={styles.pillText}>{likesCount}</Text>
         </View>
-        <View style={styles.metaItem}>
-          <FontAwesome name="comment" size={14} color={colors.textMuted} />
-          <Text style={styles.metaText}>{commentsCount}</Text>
+        <View style={styles.pill}>
+          <FontAwesome name="comment-o" size={15} color={colors.textMuted} />
+          <Text style={styles.pillText}>{commentsCount}</Text>
         </View>
       </View>
     </View>
@@ -66,77 +82,85 @@ export function PostCard({ post }: Props) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginHorizontal: spacing.lg,
+    borderRadius: radius.xl,
     marginBottom: spacing.md,
+    overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing.md,
-    marginBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.border,
-  },
-  headerText: {
-    flex: 1,
-    minWidth: 0,
   },
   name: {
     ...typography.title,
     color: colors.textPrimary,
-  },
-  title: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-  preview: {
-    ...typography.body,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  paidBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: colors.paidOverlay,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.paidBorder,
-    marginBottom: spacing.md,
-  },
-  paidText: {
-    ...typography.caption,
-    color: colors.textMuted,
     flex: 1,
+    minWidth: 0,
   },
   cover: {
     width: '100%',
-    aspectRatio: 16 / 9,
-    borderRadius: radius.md,
+    aspectRatio: 4 / 3,
     backgroundColor: colors.border,
-    marginBottom: spacing.md,
   },
-  meta: {
+  textBlock: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  postTitle: {
+    ...typography.postTitle,
+    color: colors.textPrimary,
+  },
+  preview: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+  paidBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.paidOverlay,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.paidBorder,
+  },
+  paidText: {
+    ...typography.body,
+    color: colors.textMuted,
+    flex: 1,
+  },
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xl,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    paddingTop: spacing.xs,
   },
-  metaItem: {
+  pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    backgroundColor: colors.pillBackground,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
   },
-  metaText: {
+  pillText: {
     ...typography.meta,
     color: colors.textSecondary,
   },

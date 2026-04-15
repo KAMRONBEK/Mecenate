@@ -110,14 +110,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerTitle: {
-    ...typography.title,
-    fontSize: 28,
+    ...typography.screenTitle,
     color: colors.textPrimary,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
   },
   listContent: {
-    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.xxl,
   },
   center: {
