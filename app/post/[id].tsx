@@ -39,7 +39,6 @@ import { colors, commentComposer, radius, spacing, typography } from '@/src/them
 const COMMENT_LIKE_HIT_SLOP = { top: 18, bottom: 18, left: 16, right: 16 } as const;
 
 const COMMENTS_REVEAL_TOP_PADDING = spacing.sm;
-const COMMENT_AFTER_SEND_EXTRA_OFFSET = 72;
 
 /** Russian plural for "комментарий" — matches Figma "4 комментария" style labels */
 function formatRuCommentsCount(n: number): string {
@@ -171,11 +170,15 @@ export default function PostDetailScreen() {
 
   const revealOwnComment = useCallback(() => {
     if (commentsNewestFirst) {
-      scrollToComments(COMMENT_AFTER_SEND_EXTRA_OFFSET, false);
+      listRef.current?.scrollToIndex({
+        index: 0,
+        animated: true,
+        viewOffset: COMMENTS_REVEAL_TOP_PADDING,
+      });
       return;
     }
     listRef.current?.scrollToEnd({ animated: true });
-  }, [commentsNewestFirst, scrollToComments]);
+  }, [commentsNewestFirst]);
 
   /** Keeps anchor for post-send scroll only — no scroll on initial page open */
   const handleCommentsSectionLayout = useCallback((y: number) => {
@@ -407,6 +410,9 @@ export default function PostDetailScreen() {
           onEndReachedThreshold={0.4}
           ListEmptyComponent={listEmptyComponent}
           removeClippedSubviews={Platform.OS === 'android'}
+          onScrollToIndexFailed={() => {
+            scrollToComments(0, false);
+          }}
         />
         <View style={[styles.composer, { paddingBottom: composerBottomPadding }]}>
           <View style={styles.composerRow}>
