@@ -1,14 +1,16 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import HeartFilled from '@/assets/svgs/heart.svg';
 import HeartOutlined from '@/assets/svgs/heart-outlined.svg';
 import MessageIcon from '@/assets/svgs/message.svg';
 import type { Post } from '@/src/api/types';
 import { colors, radius, spacing, typography } from '@/src/theme/tokens';
+
+/** expo-image blur only — expo-blur + Image crashes on Android when scrolling (expo#24572). */
+const PAID_COVER_BLUR_RADIUS = Platform.select({ ios: 44, android: 56, default: 48 });
 
 type Props = {
   post: Post;
@@ -47,11 +49,12 @@ function PostCardInner({ post }: Props) {
                 cachePolicy="memory-disk"
                 priority="normal"
                 contentFit="cover"
+                blurRadius={PAID_COVER_BLUR_RADIUS}
               />
             ) : (
               <View style={[StyleSheet.absoluteFill, styles.paidMediaFallback]} />
             )}
-            <BlurView intensity={72} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={styles.paidDimming} pointerEvents="none" />
             <View style={styles.paidOverlay}>
               <View style={styles.paidIconSquare}>
                 <View style={styles.paidIconCircle}>
@@ -175,6 +178,10 @@ const styles = StyleSheet.create({
   },
   paidMediaFallback: {
     backgroundColor: '#2C2C3A',
+  },
+  paidDimming: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.paidDimOverlay,
   },
   paidOverlay: {
     ...StyleSheet.absoluteFillObject,

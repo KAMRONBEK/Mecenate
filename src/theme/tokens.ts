@@ -23,7 +23,11 @@ export const colors = {
   /** Paid / donation CTA — Figma lock card */
   paidAccent: '#6219D1',
   paidSkeleton: '#F0F0F0',
+  /** Feed loading placeholders (skeleton screens) */
+  skeleton: '#E8EBEF',
   paidOverlayText: '#FFFFFF',
+  /** Dark overlay on locked post media */
+  paidDimOverlay: 'rgba(0,0,0,0.52)',
 } as const;
 
 export const spacing = {

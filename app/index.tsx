@@ -19,6 +19,7 @@ import {
   FEED_LIST_WINDOW_SIZE,
 } from '@/src/features/feed/feedListConfig';
 import { PostCard } from '@/src/features/feed/PostCard';
+import { PostCardSkeleton } from '@/src/features/feed/PostCardSkeleton';
 import { useFeedInfiniteQuery } from '@/src/features/feed/useFeedInfiniteQuery';
 import { colors, spacing, typography } from '@/src/theme/tokens';
 
@@ -66,7 +67,8 @@ export default function FeedScreen() {
     () =>
       isFetchingNextPage ? (
         <View style={styles.footer}>
-          <ActivityIndicator color={colors.accent} />
+          <PostCardSkeleton />
+          <PostCardSkeleton />
         </View>
       ) : null,
     [isFetchingNextPage]
