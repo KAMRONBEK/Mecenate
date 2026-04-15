@@ -1,5 +1,6 @@
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -7,6 +8,7 @@ import {
   KeyboardAvoidingView,
   ListRenderItem,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -25,6 +27,7 @@ import { colors, radius, spacing, typography } from '@/src/theme/tokens';
 type Row = { type: 'comment'; comment: Comment } | { type: 'loading' };
 
 export default function PostDetailScreen() {
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const postId = typeof id === 'string' ? id : id?.[0] ?? '';
   const insets = useSafeAreaInsets();
@@ -128,72 +131,109 @@ export default function PostDetailScreen() {
     });
   };
 
+  const backBar = (
+    <View style={[styles.backBar, { paddingTop: insets.top }]}>
+      <Pressable
+        onPress={() => router.back()}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel="Назад"
+        style={styles.backButton}
+      >
+        <FontAwesome name="chevron-left" size={22} color={colors.textPrimary} />
+      </Pressable>
+    </View>
+  );
+
   if (isPending && !post) {
     return (
-      <View style={[styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
+      <View style={styles.screenRoot}>
+        {backBar}
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
       </View>
     );
   }
 
   if (isError || !post) {
     return (
-      <View style={[styles.center, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>Не удалось загрузить публикацию</Text>
-        <Text style={styles.retry} onPress={() => void refetch()}>
-          {isRefetching ? 'Загрузка…' : 'Повторить'}
-        </Text>
+      <View style={styles.screenRoot}>
+        {backBar}
+        <View style={styles.center}>
+          <Text style={styles.errorText}>Не удалось загрузить публикацию</Text>
+          <Text style={styles.retry} onPress={() => void refetch()}>
+            {isRefetching ? 'Загрузка…' : 'Повторить'}
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
-    >
-      <FlatList
-        data={listData}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        ListHeaderComponent={header}
-        contentContainerStyle={{ paddingBottom: spacing.xl }}
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.4}
-        ListEmptyComponent={
-          commentsPending ? (
-            <View style={styles.emptyLoading}>
-              <ActivityIndicator color={colors.accent} />
-            </View>
-          ) : (
-            <Text style={styles.emptyComments}>Пока нет комментариев</Text>
-          )
-        }
-        removeClippedSubviews={false}
-      />
-      <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
-        <TextInput
-          style={styles.input}
-          placeholder="Написать комментарий…"
-          placeholderTextColor={colors.textMuted}
-          value={draft}
-          onChangeText={setDraft}
-          multiline
-          maxLength={500}
+    <View style={styles.screenRoot}>
+      {backBar}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 44 : 0}
+      >
+        <FlatList
+          data={listData}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          ListHeaderComponent={header}
+          contentContainerStyle={{ paddingBottom: spacing.xl }}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.4}
+          ListEmptyComponent={
+            commentsPending ? (
+              <View style={styles.emptyLoading}>
+                <ActivityIndicator color={colors.accent} />
+              </View>
+            ) : (
+              <Text style={styles.emptyComments}>Пока нет комментариев</Text>
+            )
+          }
+          removeClippedSubviews={false}
         />
-        <Text
-          style={[styles.send, (!draft.trim() || commentMutation.isPending) && styles.sendDisabled]}
-          onPress={sendComment}
-        >
-          Отправить
-        </Text>
-      </View>
-    </KeyboardAvoidingView>
+        <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+          <TextInput
+            style={styles.input}
+            placeholder="Написать комментарий…"
+            placeholderTextColor={colors.textMuted}
+            value={draft}
+            onChangeText={setDraft}
+            multiline
+            maxLength={500}
+          />
+          <Text
+            style={[styles.send, (!draft.trim() || commentMutation.isPending) && styles.sendDisabled]}
+            onPress={sendComment}
+          >
+            Отправить
+          </Text>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  backBar: {
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   flex: { flex: 1, backgroundColor: colors.background },
   center: {
     flex: 1,

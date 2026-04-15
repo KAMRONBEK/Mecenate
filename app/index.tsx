@@ -52,8 +52,6 @@ export default function FeedScreen() {
     fetchNextPage,
     refetch,
     isRefetching,
-    isFetching,
-    isPlaceholderData,
   } = useFeedInfiniteQuery({ tier });
 
   useLayoutEffect(() => {
@@ -119,21 +117,10 @@ export default function FeedScreen() {
     );
   }
 
-  const showTierLoading = isFetching && isPlaceholderData;
-
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.feedToolbar}>
-        <View style={styles.feedToolbarRow}>
-          <View style={styles.feedTabsWrap}>
-            <FeedTierTabs value={tier} onChange={setTier} />
-          </View>
-          {showTierLoading ? (
-            <ActivityIndicator size="small" color={colors.feedTabActive} />
-          ) : (
-            <View style={styles.toolbarSpinnerSlot} />
-          )}
-        </View>
+        <FeedTierTabs value={tier} onChange={setTier} />
       </View>
       <FlatList
         ref={listRef}
@@ -171,19 +158,6 @@ const styles = StyleSheet.create({
   feedToolbar: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
-  },
-  feedToolbarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  feedTabsWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  toolbarSpinnerSlot: {
-    width: 24,
-    height: 24,
   },
   listContent: {
     flexGrow: 1,
