@@ -14,7 +14,7 @@ const PAID_COVER_BLUR_RADIUS = Platform.select({ ios: 44, android: 56, default: 
 
 type Props = {
   post: Post;
-  /** Report outer card size (e.g. first row) so loading skeleton can match height. */
+  /** Report outer card size — used for pagination skeleton height (last row anchor). */
   onLayout?: (event: LayoutChangeEvent) => void;
 };
 

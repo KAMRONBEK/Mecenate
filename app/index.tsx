@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  type LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,6 +21,7 @@ import {
 import { PostCard } from '@/src/features/feed/PostCard';
 import { PostCardSkeleton } from '@/src/features/feed/PostCardSkeleton';
 import { useFeedInfiniteQuery } from '@/src/features/feed/useFeedInfiniteQuery';
+import { useFeedSkeletonAnchorHeight } from '@/src/features/feed/useFeedSkeletonAnchorHeight';
 import { colors, spacing, typography } from '@/src/theme/tokens';
 
 type FeedListItem = { type: 'post'; post: Post } | { type: 'loading' };
@@ -37,8 +37,6 @@ function FeedEmptyState() {
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const endReachedBusy = useRef(false);
-  /** First visible post card height — drives bottom skeleton height to match real rows. */
-  const [samplePostHeight, setSamplePostHeight] = useState<number | null>(null);
 
   const {
     data,
@@ -52,6 +50,8 @@ export default function FeedScreen() {
   } = useFeedInfiniteQuery();
 
   const posts = useMemo(() => data?.pages.flatMap((p) => p.posts) ?? [], [data]);
+
+  const { anchorHeight, onAnchorPostLayout, isAnchorIndex } = useFeedSkeletonAnchorHeight(posts.length);
 
   const listData: FeedListItem[] = useMemo(() => {
     const items: FeedListItem[] = posts.map((post) => ({ type: 'post', post }));
@@ -72,18 +72,14 @@ export default function FeedScreen() {
     });
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  const onFirstPostLayout = useCallback((e: LayoutChangeEvent) => {
-    setSamplePostHeight(e.nativeEvent.layout.height);
-  }, []);
-
   const renderItem: ListRenderItem<FeedListItem> = useCallback(
     ({ item, index }) =>
       item.type === 'loading' ? (
-        <PostCardSkeleton targetHeight={samplePostHeight} />
+        <PostCardSkeleton targetHeight={anchorHeight} />
       ) : (
-        <PostCard post={item.post} onLayout={index === 0 ? onFirstPostLayout : undefined} />
+        <PostCard post={item.post} onLayout={isAnchorIndex(index) ? onAnchorPostLayout : undefined} />
       ),
-    [samplePostHeight, onFirstPostLayout]
+    [anchorHeight, onAnchorPostLayout, isAnchorIndex]
   );
 
   const keyExtractor = useCallback((item: FeedListItem) => (item.type === 'loading' ? '__loading__' : item.post.id), []);

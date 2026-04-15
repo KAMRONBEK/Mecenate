@@ -1,34 +1,38 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import {
+  feedCardMeasuredBodyHeight,
+  FEED_CARD_FOOTER_STRIP_HEIGHT,
+  FEED_CARD_HEADER_STRIP_HEIGHT,
+  FEED_CARD_PILL_ROW_HEIGHT,
+} from '@/src/features/feed/feedCardLayout';
 import { colors, radius, spacing, typography } from '@/src/theme/tokens';
 
-/** Match PostCard free layout when no measured height yet. */
+/** Intrinsic fallback when no anchor height yet. */
 const NAME_LINE = typography.title.lineHeight;
 const TITLE_LINE = typography.postTitle.lineHeight;
 const BODY_LINE = typography.body.lineHeight;
-const META_LINE = typography.meta.lineHeight;
-const PILL_PAD_Y = spacing.xs + 2;
-const PILL_HEIGHT = PILL_PAD_Y + META_LINE + PILL_PAD_Y;
 
 type Props = {
-  /** From first post `onLayout` — skeleton row matches that height to avoid scroll jump. */
+  /** From last post `onLayout` — must match the row that will sit above the next page. */
   targetHeight?: number | null;
 };
 
 function MeasuredSkeleton({ height }: { height: number }) {
+  const bodyH = feedCardMeasuredBodyHeight(height);
   return (
     <View
       style={[styles.card, { height }]}
       accessibilityRole="progressbar"
       accessibilityLabel="Загрузка публикации"
     >
-      <View style={styles.header}>
+      <View style={styles.headerMeasured}>
         <View style={styles.avatar} />
         <View style={styles.nameBar} />
       </View>
-      <View style={styles.bodyMeasured} />
-      <View style={styles.footer}>
+      <View style={[styles.bodyMeasured, { height: bodyH }]} />
+      <View style={styles.footerMeasured}>
         <View style={styles.pill} />
         <View style={styles.pill} />
       </View>
@@ -78,6 +82,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: radius.xl,
   },
+  /** Intrinsic skeleton — same padding as PostCard header. */
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -85,6 +90,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.md,
+  },
+  /** Fixed strip — must match `FEED_CARD_HEADER_STRIP_HEIGHT` / PostCard header footprint. */
+  headerMeasured: {
+    height: FEED_CARD_HEADER_STRIP_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   avatar: {
     width: 40,
@@ -100,8 +113,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.skeleton,
   },
   bodyMeasured: {
-    flex: 1,
-    minHeight: 0,
     backgroundColor: colors.skeleton,
   },
   cover: {
@@ -137,9 +148,17 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     paddingTop: spacing.xs,
   },
+  /** Fixed strip — must match `FEED_CARD_FOOTER_STRIP_HEIGHT` / PostCard footer footprint. */
+  footerMeasured: {
+    height: FEED_CARD_FOOTER_STRIP_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
   pill: {
     width: 72,
-    height: PILL_HEIGHT,
+    height: FEED_CARD_PILL_ROW_HEIGHT,
     borderRadius: radius.full,
     backgroundColor: colors.skeleton,
   },
