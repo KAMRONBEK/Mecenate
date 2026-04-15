@@ -189,10 +189,10 @@ export default function PostDetailScreen() {
   const tryDoubleTap = useDoubleTapInWindow(DOUBLE_TAP_WINDOW_MS);
 
   const togglePostLikeOnDoubleTap = useCallback(() => {
-    if (!post) return;
+    if (!post || likePending) return;
     toggleLike();
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, [post, toggleLike]);
+  }, [likePending, post, toggleLike]);
 
   const onPostContentPress = useCallback(() => {
     tryDoubleTap('post', togglePostLikeOnDoubleTap);
