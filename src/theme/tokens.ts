@@ -11,10 +11,19 @@ export const colors = {
   textMuted: '#8E8E93',
   border: '#E5E5EA',
   accent: '#007AFF',
+  /** Pills: default icon + label (SVG) */
+  iconPill: '#57626F',
+  /** Liked like pill — outer background */
+  likePillActive: '#FF2B75',
+  likePillOnActive: '#FFFFFF',
   /** Interaction chips — Figma */
   pillBackground: '#F0F2F5',
   paidOverlay: '#F0F2F5',
   paidBorder: '#D1D1D6',
+  /** Paid / donation CTA — Figma lock card */
+  paidAccent: '#6219D1',
+  paidSkeleton: '#F0F0F0',
+  paidOverlayText: '#FFFFFF',
 } as const;
 
 export const spacing = {

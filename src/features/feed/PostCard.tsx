@@ -1,7 +1,8 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import HeartFilled from '@/assets/svgs/heart.svg';
 import HeartOutlined from '@/assets/svgs/heart-outlined.svg';
@@ -34,25 +35,57 @@ function PostCardInner({ post }: Props) {
         </Text>
       </View>
 
-      {coverUrl ? (
-        <Image
-          source={{ uri: coverUrl }}
-          style={styles.cover}
-          recyclingKey={`${post.id}-cover`}
-          cachePolicy="memory-disk"
-          priority="normal"
-          contentFit="cover"
-        />
-      ) : null}
-
-      <View style={styles.textBlock}>
-        {isPaid ? (
-          <View style={styles.paidBox} accessibilityLabel="Закрытый пост для подписчиков">
-            <FontAwesome name="lock" size={16} color={colors.textMuted} />
-            <Text style={styles.paidText}>Этот контент доступен только для подписчиков</Text>
+      {isPaid ? (
+        <>
+          <View style={styles.paidMedia} accessibilityLabel="Закрытый пост">
+            {coverUrl ? (
+              <Image
+                source={{ uri: coverUrl }}
+                style={StyleSheet.absoluteFill}
+                recyclingKey={`${post.id}-cover`}
+                cachePolicy="memory-disk"
+                priority="normal"
+                contentFit="cover"
+              />
+            ) : (
+              <View style={[StyleSheet.absoluteFill, styles.paidMediaFallback]} />
+            )}
+            <BlurView intensity={72} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={styles.paidOverlay}>
+              <View style={styles.paidIconSquare}>
+                <View style={styles.paidIconCircle}>
+                  <FontAwesome name="dollar" size={18} color={colors.paidAccent} />
+                </View>
+              </View>
+              <Text style={styles.paidLine1}>Контент скрыт пользователем.</Text>
+              <Text style={styles.paidLine2}>Доступ откроется после доната</Text>
+              <Pressable
+                style={({ pressed }) => [styles.paidCta, pressed && styles.paidCtaPressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Отправить донат"
+              >
+                <Text style={styles.paidCtaLabel}>Отправить донат</Text>
+              </Pressable>
+            </View>
           </View>
-        ) : (
-          <>
+          <View style={styles.skeletonBlock}>
+            <View style={styles.skeletonLineShort} />
+            <View style={styles.skeletonLineLong} />
+          </View>
+        </>
+      ) : (
+        <>
+          {coverUrl ? (
+            <Image
+              source={{ uri: coverUrl }}
+              style={styles.cover}
+              recyclingKey={`${post.id}-cover`}
+              cachePolicy="memory-disk"
+              priority="normal"
+              contentFit="cover"
+            />
+          ) : null}
+          <View style={styles.textBlock}>
             {title ? (
               <Text style={styles.postTitle} numberOfLines={2}>
                 {title}
@@ -61,21 +94,21 @@ function PostCardInner({ post }: Props) {
             <Text style={styles.preview} numberOfLines={3}>
               {preview}
             </Text>
-          </>
-        )}
-      </View>
+          </View>
+        </>
+      )}
 
       <View style={styles.footer}>
-        <View style={styles.pill}>
+        <View style={[styles.pill, isLiked && styles.pillLiked]}>
           {isLiked ? (
-            <HeartFilled width={17} height={15} accessibilityLabel="Лайки" />
+            <HeartFilled width={17} height={15} color={colors.likePillOnActive} accessibilityLabel="Лайки" />
           ) : (
-            <HeartOutlined width={17} height={15} accessibilityLabel="Лайки" />
+            <HeartOutlined width={17} height={15} color={colors.iconPill} accessibilityLabel="Лайки" />
           )}
-          <Text style={styles.pillText}>{likesCount}</Text>
+          <Text style={[styles.pillText, isLiked && styles.pillTextLiked]}>{likesCount}</Text>
         </View>
         <View style={styles.pill}>
-          <MessageIcon width={15} height={15} accessibilityLabel="Комментарии" />
+          <MessageIcon width={15} height={15} color={colors.iconPill} accessibilityLabel="Комментарии" />
           <Text style={styles.pillText}>{commentsCount}</Text>
         </View>
       </View>
@@ -133,21 +166,86 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
   },
-  paidBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.paidOverlay,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.paidBorder,
+  paidMedia: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    overflow: 'hidden',
+    backgroundColor: colors.border,
   },
-  paidText: {
+  paidMediaFallback: {
+    backgroundColor: '#2C2C3A',
+  },
+  paidOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+  },
+  paidIconSquare: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.md,
+    backgroundColor: colors.paidAccent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paidIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.paidOverlayText,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paidLine1: {
     ...typography.body,
-    color: colors.textMuted,
-    flex: 1,
+    fontWeight: '500',
+    color: colors.paidOverlayText,
+    textAlign: 'center',
+  },
+  paidLine2: {
+    ...typography.caption,
+    color: colors.paidOverlayText,
+    textAlign: 'center',
+    opacity: 0.95,
+  },
+  paidCta: {
+    alignSelf: 'stretch',
+    maxWidth: 320,
+    width: '100%',
+    backgroundColor: colors.paidAccent,
+    paddingVertical: spacing.md + 2,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paidCtaPressed: {
+    opacity: 0.88,
+  },
+  paidCtaLabel: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.paidOverlayText,
+  },
+  skeletonBlock: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  skeletonLineShort: {
+    height: 12,
+    width: '42%',
+    borderRadius: radius.full,
+    backgroundColor: colors.paidSkeleton,
+  },
+  skeletonLineLong: {
+    height: 12,
+    width: '92%',
+    borderRadius: radius.full,
+    backgroundColor: colors.paidSkeleton,
   },
   footer: {
     flexDirection: 'row',
@@ -166,8 +264,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
   },
+  pillLiked: {
+    backgroundColor: colors.likePillActive,
+  },
   pillText: {
     ...typography.meta,
-    color: colors.textSecondary,
+    color: colors.iconPill,
+  },
+  pillTextLiked: {
+    color: colors.likePillOnActive,
   },
 });
