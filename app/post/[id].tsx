@@ -5,15 +5,14 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
   ListRenderItem,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Comment } from '@/src/api/types';
@@ -175,8 +174,8 @@ export default function PostDetailScreen() {
       {backBar}
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 44 : 0}
+        behavior="translate-with-padding"
+        keyboardVerticalOffset={insets.top + 44}
       >
         <FlatList
           data={listData}
