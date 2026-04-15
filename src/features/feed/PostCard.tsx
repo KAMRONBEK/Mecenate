@@ -16,126 +16,151 @@ type Props = {
   post: Post;
   /** Report outer card size — used for pagination skeleton height (last row anchor). */
   onLayout?: (event: LayoutChangeEvent) => void;
-  /** Tap opens post detail when provided */
-  onPress?: () => void;
+  /** Main area (header + media + text) opens post detail */
+  onPressContent?: () => void;
+  /** Like pill */
+  onPressLike?: () => void;
+  /** Comments pill */
+  onPressComments?: () => void;
+  /** Disable like pill while request in flight for this post */
+  likeDisabled?: boolean;
 };
 
-function PostCardInner({ post, onLayout, onPress }: Props) {
+function PostCardInner({
+  post,
+  onLayout,
+  onPressContent,
+  onPressLike,
+  onPressComments,
+  likeDisabled,
+}: Props) {
   const { author, preview, coverUrl, likesCount, commentsCount, tier, title } = post;
   const userHasLiked = post.isLiked === true;
   const isPaid = tier === 'paid';
   const name = author.displayName || author.username;
 
-  const card = (
-    <View style={styles.card} onLayout={onLayout}>
-      <View style={styles.header}>
-        <Image
-          source={{ uri: author.avatarUrl }}
-          style={styles.avatar}
-          recyclingKey={`${post.id}-avatar`}
-          cachePolicy="memory-disk"
-          priority="low"
-          contentFit="cover"
-        />
-        <Text style={styles.name} numberOfLines={1}>
-          {name}
-        </Text>
-      </View>
+  const mainAccessibilityLabel = `Публикация: ${title || preview || 'без названия'}`;
 
-      {isPaid ? (
-        <>
-          <View style={styles.paidMedia} accessibilityLabel="Закрытый пост">
+  return (
+    <View style={styles.card} onLayout={onLayout}>
+      <Pressable
+        onPress={onPressContent}
+        disabled={!onPressContent}
+        accessibilityRole={onPressContent ? 'button' : undefined}
+        accessibilityLabel={onPressContent ? mainAccessibilityLabel : undefined}
+        style={({ pressed }) => [styles.mainPressable, pressed && onPressContent && styles.mainPressablePressed]}
+      >
+        <View style={styles.header}>
+          <Image
+            source={{ uri: author.avatarUrl }}
+            style={styles.avatar}
+            recyclingKey={`${post.id}-avatar`}
+            cachePolicy="memory-disk"
+            priority="low"
+            contentFit="cover"
+          />
+          <Text style={styles.name} numberOfLines={1}>
+            {name}
+          </Text>
+        </View>
+
+        {isPaid ? (
+          <>
+            <View style={styles.paidMedia} accessibilityLabel="Закрытый пост">
+              {coverUrl ? (
+                <Image
+                  source={{ uri: coverUrl }}
+                  style={StyleSheet.absoluteFill}
+                  recyclingKey={`${post.id}-cover`}
+                  cachePolicy="memory-disk"
+                  priority="normal"
+                  contentFit="cover"
+                  blurRadius={PAID_COVER_BLUR_RADIUS}
+                />
+              ) : (
+                <View style={[StyleSheet.absoluteFill, styles.paidMediaFallback]} />
+              )}
+              <View style={styles.paidDimming} pointerEvents="none" />
+              <View style={styles.paidOverlay}>
+                <View style={styles.paidIconSquare}>
+                  <View style={styles.paidIconCircle}>
+                    <FontAwesome name="dollar" size={18} color={colors.paidAccent} />
+                  </View>
+                </View>
+                <Text style={styles.paidLine1}>Контент скрыт пользователем.</Text>
+                <Text style={styles.paidLine2}>Доступ откроется после доната</Text>
+                <Pressable
+                  style={({ pressed }) => [styles.paidCta, pressed && styles.paidCtaPressed]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Отправить донат"
+                >
+                  <Text style={styles.paidCtaLabel}>Отправить донат</Text>
+                </Pressable>
+              </View>
+            </View>
+            <View style={styles.skeletonBlock}>
+              <View style={styles.skeletonLineShort} />
+              <View style={styles.skeletonLineLong} />
+            </View>
+          </>
+        ) : (
+          <>
             {coverUrl ? (
               <Image
                 source={{ uri: coverUrl }}
-                style={StyleSheet.absoluteFill}
+                style={styles.cover}
                 recyclingKey={`${post.id}-cover`}
                 cachePolicy="memory-disk"
                 priority="normal"
                 contentFit="cover"
-                blurRadius={PAID_COVER_BLUR_RADIUS}
               />
-            ) : (
-              <View style={[StyleSheet.absoluteFill, styles.paidMediaFallback]} />
-            )}
-            <View style={styles.paidDimming} pointerEvents="none" />
-            <View style={styles.paidOverlay}>
-              <View style={styles.paidIconSquare}>
-                <View style={styles.paidIconCircle}>
-                  <FontAwesome name="dollar" size={18} color={colors.paidAccent} />
-                </View>
-              </View>
-              <Text style={styles.paidLine1}>Контент скрыт пользователем.</Text>
-              <Text style={styles.paidLine2}>Доступ откроется после доната</Text>
-              <Pressable
-                style={({ pressed }) => [styles.paidCta, pressed && styles.paidCtaPressed]}
-                accessibilityRole="button"
-                accessibilityLabel="Отправить донат"
-              >
-                <Text style={styles.paidCtaLabel}>Отправить донат</Text>
-              </Pressable>
-            </View>
-          </View>
-          <View style={styles.skeletonBlock}>
-            <View style={styles.skeletonLineShort} />
-            <View style={styles.skeletonLineLong} />
-          </View>
-        </>
-      ) : (
-        <>
-          {coverUrl ? (
-            <Image
-              source={{ uri: coverUrl }}
-              style={styles.cover}
-              recyclingKey={`${post.id}-cover`}
-              cachePolicy="memory-disk"
-              priority="normal"
-              contentFit="cover"
-            />
-          ) : null}
-          <View style={styles.textBlock}>
-            {title ? (
-              <Text style={styles.postTitle} numberOfLines={2}>
-                {title}
-              </Text>
             ) : null}
-            <Text style={styles.preview} numberOfLines={3}>
-              {preview}
-            </Text>
-          </View>
-        </>
-      )}
+            <View style={styles.textBlock}>
+              {title ? (
+                <Text style={styles.postTitle} numberOfLines={2}>
+                  {title}
+                </Text>
+              ) : null}
+              <Text style={styles.preview} numberOfLines={3}>
+                {preview}
+              </Text>
+            </View>
+          </>
+        )}
+      </Pressable>
 
       <View style={styles.footer}>
-        <View style={[styles.pill, userHasLiked && styles.pillLiked]}>
+        <Pressable
+          onPress={onPressLike}
+          disabled={!onPressLike || likeDisabled}
+          style={({ pressed }) => [
+            styles.pill,
+            userHasLiked && styles.pillLiked,
+            pressed && onPressLike && styles.pillPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Лайки"
+        >
           {userHasLiked ? (
-            <HeartFilled width={17} height={15} color={colors.likePillOnActive} accessibilityLabel="Лайки" />
+            <HeartFilled width={17} height={15} color={colors.likePillOnActive} />
           ) : (
-            <HeartOutlined width={17} height={15} color={colors.iconPill} accessibilityLabel="Лайки" />
+            <HeartOutlined width={17} height={15} color={colors.iconPill} />
           )}
           <Text style={[styles.pillText, userHasLiked && styles.pillTextLiked]}>{likesCount}</Text>
-        </View>
-        <View style={styles.pill}>
-          <MessageIcon width={15} height={15} color={colors.iconPill} accessibilityLabel="Комментарии" />
+        </Pressable>
+        <Pressable
+          onPress={onPressComments}
+          disabled={!onPressComments}
+          style={({ pressed }) => [styles.pill, pressed && onPressComments && styles.pillPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Комментарии"
+        >
+          <MessageIcon width={15} height={15} color={colors.iconPill} />
           <Text style={styles.pillText}>{commentsCount}</Text>
-        </View>
+        </Pressable>
       </View>
     </View>
   );
-
-  if (onPress) {
-    return (
-      <Pressable
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={`Публикация: ${title || preview || 'без названия'}`}
-      >
-        {card}
-      </Pressable>
-    );
-  }
-
-  return card;
 }
 
 export const PostCard = memo(PostCardInner);
@@ -148,6 +173,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     overflow: 'hidden',
     borderRadius: radius.xl,
+  },
+  mainPressable: {
+    width: '100%',
+  },
+  mainPressablePressed: {
+    opacity: 0.96,
   },
   header: {
     flexDirection: 'row',
@@ -299,5 +330,8 @@ const styles = StyleSheet.create({
   },
   pillTextLiked: {
     color: colors.likePillOnActive,
+  },
+  pillPressed: {
+    opacity: 0.88,
   },
 });

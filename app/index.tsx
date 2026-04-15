@@ -23,6 +23,7 @@ import {
 import { PostCard } from '@/src/features/feed/PostCard';
 import { PostCardSkeleton } from '@/src/features/feed/PostCardSkeleton';
 import { useFeedInfiniteQuery } from '@/src/features/feed/useFeedInfiniteQuery';
+import { useFeedPostLikeMutation } from '@/src/features/feed/useFeedPostLikeMutation';
 import { useFeedSkeletonAnchorHeight } from '@/src/features/feed/useFeedSkeletonAnchorHeight';
 import { colors, spacing, typography } from '@/src/theme/tokens';
 
@@ -42,6 +43,14 @@ export default function FeedScreen() {
   const endReachedBusy = useRef(false);
   const listRef = useRef<FlatList<FeedListItem>>(null);
   const [tier, setTier] = useState<FeedTierFilter>('all');
+  const likeMutation = useFeedPostLikeMutation();
+
+  const openPostDetail = useCallback(
+    (postId: string) => {
+      router.push({ pathname: '/post/[id]', params: { id: postId } });
+    },
+    [router]
+  );
 
   const {
     data,
@@ -89,10 +98,13 @@ export default function FeedScreen() {
         <PostCard
           post={item.post}
           onLayout={isAnchorIndex(index) ? onAnchorPostLayout : undefined}
-          onPress={() => router.push({ pathname: '/post/[id]', params: { id: item.post.id } })}
+          onPressContent={() => openPostDetail(item.post.id)}
+          onPressLike={() => likeMutation.mutate(item.post.id)}
+          onPressComments={() => openPostDetail(item.post.id)}
+          likeDisabled={likeMutation.isPending && likeMutation.variables === item.post.id}
         />
       ),
-    [anchorHeight, onAnchorPostLayout, isAnchorIndex, router]
+    [anchorHeight, onAnchorPostLayout, isAnchorIndex, likeMutation, openPostDetail]
   );
 
   const keyExtractor = useCallback((item: FeedListItem) => (item.type === 'loading' ? '__loading__' : item.post.id), []);
